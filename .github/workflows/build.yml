@@ -1,4 +1,4 @@
-name: Build APK
+name: Build Vyra (TV app + iPhone web app)
 
 on:
   push:
@@ -6,9 +6,11 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  build:
+  apk:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -23,8 +25,7 @@ jobs:
           ZIP=$(git log -1 --diff-filter=AM --name-only --format= -- '*.zip' | head -1)
           echo "Using: $ZIP"
           unzip -q "$ZIP" -d src
-          PROJECT=$(dirname "$(find src -maxdepth 2 -name gradlew | head -1)")
-          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+          echo "PROJECT=$(dirname "$(find src -maxdepth 2 -name gradlew | head -1)")" >> "$GITHUB_ENV"
       - name: Build
         run: |
           cd "$PROJECT"
@@ -42,3 +43,25 @@ jobs:
           name: Vyra (latest build)
           files: Vyra.apk
           make_latest: true
+
+  iphone-web:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Unzip the newest uploaded project zip
+        run: |
+          ZIP=$(git log -1 --diff-filter=AM --name-only --format= -- '*.zip' | head -1)
+          unzip -q "$ZIP" -d src
+          PROJECT=$(dirname "$(find src -maxdepth 2 -name gradlew | head -1)")
+          mkdir -p site && cp -r "$PROJECT/web/." site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
