@@ -23,20 +23,22 @@ jobs:
           ZIP=$(git log -1 --diff-filter=AM --name-only --format= -- '*.zip' | head -1)
           echo "Using: $ZIP"
           unzip -q "$ZIP" -d src
+          PROJECT=$(dirname "$(find src -maxdepth 2 -name gradlew | head -1)")
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
       - name: Build
-        working-directory: src/DesiTV
         run: |
+          cd "$PROJECT"
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
-          cp app/build/outputs/apk/release/app-release.apk $GITHUB_WORKSPACE/DesiTV.apk
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Vyra.apk"
       - uses: actions/upload-artifact@v4
         with:
-          name: DesiTV-apk
-          path: DesiTV.apk
+          name: Vyra-apk
+          path: Vyra.apk
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Desi TV (latest build)
-          files: DesiTV.apk
+          name: Vyra (latest build)
+          files: Vyra.apk
           make_latest: true
